@@ -1,0 +1,198 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+* * *
+
+## Part 1: Data
+
+The General Social Survey (GSS) has been a tool for monitoring societal change and studying the growing complexity of American society since 1972.  Surveys were conducted in 29 of the years between 1972 and 2012, the ending year for the data set used for this analysis.  The GSS aims to gather data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes; to examine the structure and functioning of society in general as well as the role played by relevant subgroups; to compare the United States to other societies in order to place American society in comparative perspective and develop cross-national models of human society; and to make high-quality data easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting.  A major goal is to serve as a social indicator program. Hence, items which appeared on previous national surveys starting in 1937 were replicated in the surveys.
+
+The surveys are interviews administered to national samples using a standard questionnaire.  The median length of interviews is about one and a half hours. Each survey from 1972 to 2004 was an independently drawn sample of English-speaking persons 18 years of age or over, living in non-institutional arrangements within the United States. Starting in 2006 Spanish-speakers were added to the target population. Block quota sampling was used in 1972, 1973, and 1974 surveys and for half of the 1975 and 1976 surveys. Full probability sampling was employed in half of the 1975 and 1976 surveys and the 1977, 1978, 1980,
+1982-1991, 1993-1998, 2000, 2002, 2004, 2006, 2008, 2010, and 2012 surveys. This means that random sampling (in some form) was used for this last range of years.
+
+The GSS data is purely derived from sampling.  So, although generalizations can be applied to target population indicated, conclusions about causality are not licensed.  No experimentation with random assignment was used.  The latter is what would be necessary in order to justify causal inferences.
+
+* Information obtained from: <http://gss.norc.org/Get-Documentation>
+
+
+* * *
+
+## Part 2: Research question
+
+In the year 2012, was there a statistically significant difference in degree of confidence toward the scientific community based on one's political stance -- left-leaning, moderate, or right-leaning?
+
+$H_0$: There is no significant difference in confidence in the scientific community based on political stance.  The two are independent.
+
+$H_A$:  There is a statistically significant difference in confidence in the scientific community based on political stance.  They are not independent.
+
+Since political stance and degree of confidence in the scientific community are categorical variables, each with more than two response values, we use a chi-square test for independence to perform this hypothesis test.
+
+The interest of this question should be evident for those who have followed the political battles in the U.S. over the past decade and how some scientific issues -- such as climate change, the theory of evolution, and the safety of vaccinations -- have become at times politicized.  A further study (not done here) would be to compare these results with data obtained more recently, say in 2018.
+
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+The relevant variables from the GSS for addressing this research question are *consci* and *polviews*.  The variable *polviews* records responses to a question designed to discover whether one considers themselves liberal, conservative, or moderate -- and to what degree.  The question asked was the following: "We hear a lot of talk these days about liberals and conservatives. I'm going to show you a seven-point scale on which the political views that people might hold are arranged from extremely liberal - point 1 - to extremely conservative - point 7. Where would you place yourself on this scale?"
+
+1	EXTREMELY LIBERAL  
+2	LIBERAL  
+3	SLIGHTLY LIBERAL  
+4	MODERATE  
+5	SLGHTLY CONSERVATIVE  
+6	CONSERVATIVE  
+7	EXTRMLY CONSERVATIVE  
+
+The variable *consci* records responses to a question designed to discover the degree of one's confidence in the scientific community.  The question was asked as a part of a series of questions regarding one's confidence in various U.S. institutions.  The relevant part of this series of questions is the following:  "I am going to name some institutions in this country. As far as the people running these institutions are concerned, would you say you have a great deal of confidence, only some confidence, or hardly any confidence at all in them? k. Scientific community."
+
+1	A GREAT DEAL  
+2	ONLY SOME  
+3	HARDLY ANY  
+
+For the analysis of this question, the data set will be reduced so as to select only the variables *polviews* and *consci*. Also, only records from 2012 will be included and any records with NAs from these two variables will be removed.
+
+```{r}
+gss2012_7views <- gss %>%
+  filter(year == 2012, !is.na(polviews), !is.na(consci)) %>%
+  select(polviews, consci)
+  
+```
+
+Viewing count data in a table format we get:
+
+```{r}
+table(gss2012_7views$polviews, gss2012_7views$consci)
+```
+
+From this data a two-way table of expected counts (on the assumption the variables are independent) can be constructed using the formula: 
+
+\[\text{expected count (E)}\  =\ \frac{\text{row total} \times \text{column total}}{\text{grand total}}\]
+
+The resulting table is: 
+
+**Table of Expected Counts ("7 views" data)**
+
+| 	|A Great Deal|	Only Some	|Hardly Any|
+|---|------------|------------|----------|
+|Extremely Liberal|	24.19|	27.84|	3.97|
+|Liberal|	65.66|	75.56|	10.78|
+|Slightly Liberal|	58.75|	67.61|	9.64|
+|Moderate|	194.39|	223.70|	31.90|
+|Slightly Conservative|	81.21|	93.46|	13.33|
+|Conservative|	79.92|	91.97|	13.12|
+|Extrmly Conservative|	19.87|	22.87|	3.26|
+
+We observe that some of the values in the "Hardly Any" column have expected values less than 5.  This will be significant when we consider the conditions for inference in the next section.
+
+The observed data can be visualized by means of a stacked bar plot.
+
+```{r}
+ggplot(data = gss2012_7views, aes(x = polviews, fill = consci)) +
+  geom_bar(position = "stack") + 
+  theme(axis.text.x= element_text(angle=90, hjust = 1, vjust = 0.5))
+```
+
+On the face of it, the relative proportions of the response values for *consci* do not appear to be roughly equal -- for example, comparing the "Liberal" column with the "Conservative" column.  Of course, there are also obvious differences of relative propotion between the "Slightly Conservative" and the "Conservative" columns.
+
+Of course, the original research question only distinguishes 3 views rather than 7, being concerned with the broader distinctions of left-leaning (to whatever degree), moderate, and right-leaning (to whatever degree).  We will consider this first data set the "7 views" data set.  Now, we create another reduced data set, but this time with an additional derived variable which we will name *polstance*, a variable derived from *polviews*, but with only three values: "Left-Leaning", "Moderate", and "Right_Leaning".  The "Moderate" variable remains the same, but the other two are derived from the union of the various "liberal" response values and the various "conservative" values.  This will be called the "3 views" data set.
+
+
+```{r}
+gss2012_3views <- gss %>%
+  filter(year == 2012, !is.na(polviews), !is.na(consci)) %>%
+  select(polviews, consci) %>%
+  mutate(polstance = ifelse(polviews == "Extremely Liberal" | polviews == "Liberal" | polviews == "Slightly Liberal", "Left-Leaning", ifelse(polviews == "Slightly Conservative" | polviews == "Conservative" | polviews == "Extrmly Conservative", "Right-Leaning", "Moderate")))
+```
+
+From this "3 views" data set, we can produce a table of counts.
+
+```{r}
+table(gss2012_3views$polstance, gss2012_3views$consci)
+```
+
+As above, expected counts can be calculated and summarized in a table.
+
+**Table of Expected Counts ("3 views" data)**
+
+|	|A Great Deal|	Only Some|	Hardly Any|
+|----|---------|-----------|------------|
+|Left-Leaning|	148.60|	171.01|	24.39|
+|Moderate|	194.39|	223.70|	31.90|
+|Right-Leaning|	181.00|	208.29|	29.71|
+
+Notice that the expected counts in all cells is greater than 5.  Again, this will be important when we consider the conditions for inference below.
+
+The observed count data can be visualized via a stacked bar plot.
+
+```{r}
+ggplot(data = gss2012_3views, aes(x = polstance, fill = consci)) +
+  geom_bar(position = "stack")
+```
+
+
+Now, with only 3 political categories, it is not so obvious that the relative proportions of the responses to the *consci* question are that different and, hence, numerical analysis of both of these data sets would seem to be worthwhile.
+
+* * *
+
+## Part 4: Inference
+
+**The Hypotheses**
+
+As a reminder the hypotheses for our test are: 
+
+$H_0$: There is no significant difference in confidence in the scientific community based on political stance in 2012.  The two are independent.
+
+$H_A$:  There is a statistically significant difference in confidence in the scientific community based on political stance in 2012.  They are not independent.
+
+**The Conditions for Inference**
+
+Given that our research question is concerned with two categorical variables, each taking on more than two values, a chi-squared test for independence is in order.  Given that this is the appropriate test for the research question, no confidence interval will be calculated since there is no associated confidence interval for chi-squared testing.
+
+The *Independence Condition* is satisfied.  Random sampling was used.  Each case only contributes to one cell in each of the tables above since the categorical values are mutually exclusive.  Finally, even though sampling occurred without replacement, far less than 10% of the population was sampled.  
+
+The *Sample Size/Skew Condition* is satisfied for the "3 views" data set but not for the "7 views" data set since as we saw previously in some cells of the expected count table, the expected count was less than 5.  This in part also justifies the decision to create the derived variable *polstance* and to use that and the "3 views" data set for analysis.
+
+**Chi-Squared Test for "7 views" data set**
+
+If we try to run the chi-square test in R for the "7 views" data, the test warns us that the "Chi-squared approximation may be incorrect", presumably because it fails the Sample Size/Skew Condition.
+
+```{r}
+chisq.test(gss2012_7views$polviews, gss2012_7views$consci, correct = FALSE)
+```
+
+The p-value obtained using this data set is: p-value = 0.00127. This is less than the typical significance level of 0.05 which would imply that we should reject the null hypothesis.  But, again, this is not the best data set for our analysis.  It fails the conditions for inference and it slices the categories "Left-Leaning" and "Right-Leaning" more finely than the research question requires.
+
+**Chi-Squared Test for "3 views" data set**
+
+```{r}
+chisq.test(gss2012_3views$polstance, gss2012_3views$consci, correct = FALSE)
+```
+
+When we run the Chi-Squared Test for the "3 views" data set on the variable *polstance* we obtain a p-value of 0.08901.  This value is greater than the standard significance level of 0.05.  So, we should not reject the null hypothesis, $H_0$.  The evidence does not warrant the conclusion that in 2012 there was a statistically significant difference in confidence in the scientific community based on political stance.  The data does not show such a statistical dependence.
+
+As was noted earlier, a comparative study in which this same analysis is run for 2018 data and the result compared with this result would be interesting.  The political situation in the U.S. seems to be even more polarized along conservative-vs-liberal lines and the issue of climate change has only become a more politicized issue since 2012.
+
