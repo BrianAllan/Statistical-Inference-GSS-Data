@@ -1,11 +1,16 @@
 ---
-title: "Statistical inference with the GSS data"
+title: "Statistical Inference with General Social Survey Data"
+author: Brian Allan Woodcock
 output: 
   html_document: 
     fig_height: 4
     highlight: pygments
     theme: spacelab
 ---
+
+**Note**: Created for the Coursera course **"Inferential Statistics"** in the **_Statistics with R_** sequence by Duke University.
+
+***
 
 ## Setup
 
