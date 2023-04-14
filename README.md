@@ -17,7 +17,6 @@ Coding and documentation was done using `R` and an `R` Markdown file.
 ### Files Used
 
 BAW_stat_inf_project.Rmd    
-BAW_stat_inf_project.html   
 gss.Rdata    
 
 ### Tools Used
